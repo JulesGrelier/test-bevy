@@ -1,4 +1,4 @@
-use macroquad::prelude::*;
+use macroquad::{color, prelude::*};
 use crate::params::*;
 
 #[derive(Clone, Copy)]
@@ -30,7 +30,7 @@ impl Square {
         let w = if self.has_right_wall { SIZE_SQUARE-BORDER_SQUARE } else { SIZE_SQUARE };
         let h = if self.has_bottom_wall { SIZE_SQUARE-BORDER_SQUARE } else { SIZE_SQUARE };
 
-        draw_rectangle(self.x, self.y, w, h, RED);
+        draw_rectangle(self.x, self.y, w, h, color::SKYBLUE);
     }
 
     pub fn draw_debug(&self) {

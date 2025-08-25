@@ -1,4 +1,4 @@
-use std::time::Duration;
+//use std::time::Duration;
 
 use macroquad::prelude::*;
 mod square;
@@ -32,7 +32,7 @@ async fn main() {
         game.draw_labyrinth();
         draw_fps();
 
-        for _ in 0..100 {
+        for _ in 0..200 {
             let _ = game.make_one_cycle();
         }
 

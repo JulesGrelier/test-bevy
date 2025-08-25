@@ -1,5 +1,3 @@
-use std::io::Error;
-
 use rand::Rng;
 
 use crate::params::*;
@@ -23,8 +21,6 @@ impl Game {
 
             let on_bottom_border = (NB_SQUARE - f32_id) <= (NB_SQUARE_H);
             let on_right_border = f32_id+1.0 % NB_SQUARE_H == 0.0;
-
-            //println!(" {} --- bottom = {} et rigth = {}", id, on_bottom_border, on_right_border);
 
             squares.push(Square::new(x, y, id, on_bottom_border, on_right_border));
             usable_indices.push(id);
@@ -56,7 +52,7 @@ impl Game {
             let random_index = self.usable_indices[rand::rng().random_range(0..self.usable_indices.len())];
             let acceses = self.squares[random_index].return_bottom_and_right_acces();
 
-            if !(acceses.0 || acceses.1) {
+            if !acceses.0 & !acceses.1 {
                 self.remove_square_from_usable_indices(random_index);
                 continue;
             }
