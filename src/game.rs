@@ -1,3 +1,5 @@
+use std::io::Error;
+
 use rand::Rng;
 
 use crate::params::*;
@@ -20,9 +22,9 @@ impl Game {
             let y = SIZE_SQUARE*(f32_id/NB_SQUARE_H).floor();
 
             let on_bottom_border = (NB_SQUARE - f32_id) <= (NB_SQUARE_H);
-            let on_right_border = (f32_id % NB_SQUARE_H) == (NB_SQUARE_H-1.0);
+            let on_right_border = f32_id+1.0 % NB_SQUARE_H == 0.0;
 
-            //println!("{}) bottom = {} et rigth = {}", id, on_bottom_border, on_right_border);
+            //println!(" {} --- bottom = {} et rigth = {}", id, on_bottom_border, on_right_border);
 
             squares.push(Square::new(x, y, id, on_bottom_border, on_right_border));
             usable_indices.push(id);
@@ -43,39 +45,63 @@ impl Game {
         }
     }
 
-    pub fn return_usable_square(&mut self) -> Square {
-        println!("-----------------");
-        loop {
-            let random_nb = rand::rng().random_range(0..self.usable_indices.len());
-            let random_case = self.usable_indices[random_nb];
-            let way = self.squares[random_case].return_walls_to_destroy(self.return_bottom_and_right_id(random_case));
+    pub fn make_one_cycle(&mut self) {
 
-            match way {
-                Way::Nothing => {
-                    println!("Index {} supprimé", random_case);
-                    self.remove_square_from_usable_indices(random_case)
-                },
-                _ => {
-                    println!("Index {} choisi", random_case);
-                    return self.squares[random_case]
-                }
+        loop {
+
+            if self.usable_indices.len() == 0 {
+                return;
             }
+
+            let random_index = self.usable_indices[rand::rng().random_range(0..self.usable_indices.len())];
+            let acceses = self.squares[random_index].return_bottom_and_right_acces();
+
+            if !(acceses.0 || acceses.1) {
+                self.remove_square_from_usable_indices(random_index);
+                continue;
+            }
+
+            let id = self.squares[random_index].id;
+
+            let bottom_neighbor = if let Some(neighbor) =  self.return_neighbor(random_index, Way::Bottom) {
+                if neighbor.id != id { Some(neighbor) } else { None }
+            } else { None };
+
+            let right_neighbor = if let Some(neighbor) =  self.return_neighbor(random_index, Way::Right) {
+                if neighbor.id != id { Some(neighbor) } else { None } 
+            } else {  None };
+
+            let (neighbor, way) = match (bottom_neighbor, right_neighbor) {
+                (None, None) => {
+                    self.remove_square_from_usable_indices(random_index);
+                    continue;
+                },
+
+                (None, Some(right_neighbor)) => (right_neighbor, Way::Right),
+
+                (Some(bottom_neighbor), None) => (bottom_neighbor, Way::Bottom),
+
+                (Some(bottom_neighbor), Some(right_neighbor)) => 
+                if rand::rng().random_bool(0.5) { (right_neighbor, Way::Right) } else { (bottom_neighbor, Way::Bottom) },
+            };
+
+            self.remplace_old_by_new_id(id, neighbor.id);
+            self.squares[random_index].break_wall(way);
+
+            return;
         }
     }
 
-    fn return_bottom_and_right_id(&self, index : usize) -> (Option<usize>, Option<usize>) {
-        let bottom_id = match self.squares.get(index+NB_SQUARE_H as usize) {
-            Some(square) => Some(square.current_id),
-            None => None
-        };
-        
-        let right_id = match self.squares.get(index+1) {
-            Some(square) => Some(square.current_id),
-            None => None
-        };
-
-        println!("Bottom : {:?} ------- Right : {:?}", bottom_id, right_id);
-        (bottom_id, right_id)
+    fn return_neighbor(&self, index : usize, way : Way) -> Option<&Square> {
+        match way {
+            Way::Bottom => return self.squares.get(index+NB_SQUARE_H as usize),
+            Way::Right => {
+                if (index+1) % NB_SQUARE_H as usize == 0 { //Parentheses in (index+1) are important !!! Don't touch
+                    None
+                } else { self.squares.get(index+1) }
+            },
+            Way::Nothing => None
+        }
     }
 
     fn remove_square_from_usable_indices(&mut self, index : usize) {
@@ -83,26 +109,10 @@ impl Game {
         self.usable_indices.remove(index_to_remove);
     }
 
-    pub fn break_wall_and_return_current_and_neighbor_id(&mut self, current_square : Square) -> (usize, usize) {
-        let neighbor_id = match current_square.return_walls_to_destroy(self.return_bottom_and_right_id(current_square.index))  {
-            Way::Right => {
-                self.squares[current_square.index].has_right_wall = false;
-                self.squares[current_square.index + 1].current_id
-            },
-            Way::Bottom => {
-                self.squares[current_square.index].has_bottom_wall = false;
-                self.squares[current_square.index + NB_SQUARE_H as usize].current_id
-            }
-            Way::Nothing => { panic!("") }
-        };
-
-        (current_square.current_id, neighbor_id)
-    }
-
     pub fn remplace_old_by_new_id(&mut self, replacing_id : usize, replaced_id : usize) {
         for square in &mut self.squares {
-            if square.current_id == replaced_id {
-                square.current_id = replacing_id;
+            if square.id == replaced_id {
+                square.id = replacing_id;
             }
         }
     }
