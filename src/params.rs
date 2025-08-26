@@ -5,5 +5,5 @@ pub const NB_SQUARE_H: f32 = WINDOW_WIDTH / SIZE_SQUARE;
 pub const NB_SQUARE_V: f32 = WINDOW_HEIGHT / SIZE_SQUARE;
 pub const NB_SQUARE : f32 = NB_SQUARE_H * NB_SQUARE_V;
 
-pub const SIZE_SQUARE : f32 = 20.0;
+pub const SIZE_SQUARE : f32 = 5.0;
 pub const BORDER_SQUARE : f32 = 1.0;

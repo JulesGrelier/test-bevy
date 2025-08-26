@@ -5,6 +5,7 @@ mod square;
 mod game;
 mod params;
 use game::Game;
+use ::rand::seq::index;
 use crate::params::*;
 
 fn window_conf() -> Conf {
@@ -33,10 +34,15 @@ async fn main() {
         draw_fps();
 
         for _ in 0..200 {
-            let _ = game.make_one_cycle();
+            let a = game.make_one_cycle();
+
+            match a {
+                game::Situation::UselessIndex(index) => game.remove_square_from_usable_indices(index),
+                _ => {}
+            }
         }
 
-        //std::thread::sleep(Duration::from_millis(100));
+        //std::thread::sleep(Duration::from_millis(10));
         
         next_frame().await
     }
