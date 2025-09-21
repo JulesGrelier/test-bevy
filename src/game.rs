@@ -1,134 +1,138 @@
-use rand::Rng;
 
-use crate::{params::*, square};
-use crate::square::{Way, Square};
+// use rand::Rng;
 
-pub struct Game {
-    squares : Vec<Square>,
-    usable_indices : Vec<usize>,
-}
+// use crate::{params::*, square};
+// use crate::square::{Way, Square};
 
-pub enum Situation {
-    Success,
-    EmptyUsableIndices,
-    UselessIndex(usize)
-}
+// pub struct Game {
+//     squares : Vec<Square>,
+//     usable_indices : Vec<usize>,
+// }
 
-impl Game {
-    pub fn new() -> Self {
-        let mut squares = Vec::with_capacity(NB_SQUARE as usize);
-        let mut usable_indices = Vec::with_capacity(NB_SQUARE as usize);
+// pub enum Situation {
+//     Success,
+//     EmptyUsableIndices,
+//     UselessIndex(usize)
+// }
 
-        for id in 0..NB_SQUARE as usize {
-            let f32_id = id as f32;
+// impl Game {
+//     pub fn new() -> Self {
+//         let mut squares = Vec::with_capacity(NB_SQUARE as usize);
+//         let mut usable_indices = Vec::with_capacity(NB_SQUARE as usize);
 
-            let x = (SIZE_SQUARE*f32_id)%WINDOW_WIDTH ;
-            let y = SIZE_SQUARE*(f32_id/NB_SQUARE_H).floor();
+//         for id in 0..NB_SQUARE as usize {
+//             let f32_id = id as f32;
 
-            let on_bottom_border = (NB_SQUARE - f32_id) <= (NB_SQUARE_H);
-            let on_right_border = (f32_id+1.0) % NB_SQUARE_H == 0.0;
+//             let x = (SIZE_SQUARE*f32_id)%WINDOW_WIDTH ;
+//             let y = SIZE_SQUARE*(f32_id/NB_SQUARE_H).floor();
 
-            squares.push(Square::new(x, y, id, on_bottom_border, on_right_border));
-            usable_indices.push(id);
-        }
+//             let on_bottom_border = (NB_SQUARE - f32_id) <= (NB_SQUARE_H);
+//             let on_right_border = (f32_id+1.0) % NB_SQUARE_H == 0.0;
 
-        Self { squares, usable_indices }
-    }
+//             squares.push(Square::new(x, y, id, on_bottom_border, on_right_border));
+//             usable_indices.push(id);
+//         }
 
-    pub fn draw_labyrinth(&self) {
-        for square in &self.squares {
-            square.draw();
-        }
-    }
+//         Self { squares, usable_indices }
+//     }
 
-    pub fn debug_labyrinth(&self) {
-        for square in &self.squares {
-            square.draw_debug();
-        }
-    }
+//     pub fn draw_labyrinth(&self) {
+//         for square in &self.squares {
+//             square.draw();
+//         }
+//     }
 
-    pub fn make_one_cycle(&mut self) -> Situation {
+//     pub fn debug_labyrinth(&self) {
+//         for square in &self.squares {
+//             square.draw_debug();
+//         }
+//     }
 
-        if self.usable_indices.len() == 0 {
-            return Situation::EmptyUsableIndices;
-        }
+//     pub fn make_one_cycle(&mut self) -> Situation {
 
-        let usable_index = self.usable_indices[rand::rng().random_range(0..self.usable_indices.len())];
-        let mut way = Way::Nothing;
-        let square = &self.squares[usable_index];
+//         if self.usable_indices.len() == 0 {
+//             return Situation::EmptyUsableIndices;
+//         }
 
+//         let usable_index = self.usable_indices[rand::rng().random_range(0..self.usable_indices.len())];
+//         let square = &self.squares[usable_index];
 
-        let mut ways = vec![Way::Right, Way::Bottom];
-        ways = square.filter_by_wall(ways, true);
-        ways = square.filter_by_border(ways);
+//         let mut ways = vec![Way::Right, Way::Bottom];
+//         ways = square.filter_by_wall(ways, true);
+//         ways = square.filter_by_border(ways);
 
-        if ways.is_empty() { return Situation::UselessIndex(usable_index); }
+//         if ways.is_empty() {
+//             return Situation::UselessIndex(usable_index);
+//         }
 
-        let mut neighbors = self.return_neighbors(usable_index, ways);
-        neighbors = filter_neighbors_with_different_id(neighbors, square.id);
+//         let (neighbors, ways) = self.return_neighbors(usable_index, ways);
+//         let valide_neighbors_index = return_correct_indices(&neighbors, square.id);
 
-        if neighbors.is_empty() { return Situation::UselessIndex(usable_index); }
+//         if valide_neighbors_index.is_empty() {
+//             return Situation::UselessIndex(usable_index);
+//         }
 
-        let nieghbor_index = rand::rng().random_range(0..neighbors.len());
-        let neighbor = &neighbors[nieghbor_index];
+//         let random_nb = rand::rng().random_range(0..valide_neighbors_index.len());
+//         let random_index = valide_neighbors_index[random_nb];
 
-        way = neighbor.1;
+//         self.remplace_old_by_new_id(square.id, neighbors[random_index].id);
+//         self.squares[usable_index].break_wall(ways[random_index]);
 
-        self.remplace_old_by_new_id(square.id, neighbor.0.id);
+//         return Situation::Success;
 
-        self.squares[usable_index].break_wall(way);
+//     }
 
-        return Situation::Success;
+//     fn return_neighbors(&self, index : usize, ways : Vec<Way>) -> (Vec<&Square>, Vec<Way>) {
 
-    }
+//         let nb_sq = NB_SQUARE as usize;
+//         let nb_sq_h = NB_SQUARE_H as usize;
 
-    fn return_neighbors(&self, index : usize, ways : Vec<Way>) -> Vec<(&Square, Way)> {
+//         let mut output_squares = Vec::new();
+//         let mut output_ways = Vec::new();
 
-        let nb_sq = NB_SQUARE as usize;
-        let nb_sq_h = NB_SQUARE_H as usize;
+//         for way in ways {
+//             match way {
+//                 Way::Top => if index >= nb_sq_h {
+//                     output_squares.push(&self.squares[index-nb_sq_h]);
 
-        let mut output = Vec::new();
+//                 },
+//                 Way::Bottom => if index < (nb_sq-nb_sq_h) {
+//                     output_squares.push(&self.squares[index+nb_sq_h]);
+//                 },
+//                 Way::Left => if index % nb_sq_h > 0 {
+//                     output_squares.push(&self.squares[index-1]);
+//                 },
+//                 Way::Right => if index % nb_sq_h < nb_sq_h {
+//                     output_squares.push(&self.squares[index+1]);
+//                 },
+//                 Way::Nothing => continue,
+//             }
+//             output_ways.push(way);
+//         }
 
-        for way in ways {
-            match way {
-                Way::Top => if index >= nb_sq_h {
-                    output.push((&self.squares[index-nb_sq_h], way));
-                },
-                Way::Bottom => if index < (nb_sq-nb_sq_h) {
-                    output.push((&self.squares[index+nb_sq_h], way));
-                },
-                Way::Left => if index % nb_sq_h > 0 {
-                    output.push((&self.squares[index-1], way));
-                },
-                Way::Right => if index % nb_sq_h < nb_sq_h {
-                    output.push((&self.squares[index+1], way));
-                },
-                Way::Nothing => continue,
-            }
-        }
-        output
-    }
+//         (output_squares, output_ways)
+//     }
 
-    pub fn remove_square_from_usable_indices(&mut self, index : usize) {
-        let index_to_remove = self.usable_indices.iter().position(|&x| x == index).unwrap();
-        self.usable_indices.remove(index_to_remove);
-    }
+//     pub fn remove_square_from_usable_indices(&mut self, index : usize) {
+//         let index_to_remove = self.usable_indices.iter().position(|&x| x == index).unwrap();
+//         self.usable_indices.remove(index_to_remove);
+//     }
 
-    pub fn remplace_old_by_new_id(&mut self, replacing_id : usize, replaced_id : usize) {
-        for square in &mut self.squares {
-            if square.id == replaced_id {
-                square.id = replacing_id;
-            }
-        }
-    }
-}
+//     pub fn remplace_old_by_new_id(&mut self, replacing_id : usize, replaced_id : usize) {
+//         for square in &mut self.squares {
+//             if square.id == replaced_id {
+//                 square.id = replacing_id;
+//             }
+//         }
+//     }
+// }
 
-    fn filter_neighbors_with_different_id<'a>(neighbors : Vec<(&'a Square, Way)>, id : usize) -> Vec<(&'a Square, Way)> {
-        let mut output = Vec::new();
+//     ///Correct == diffrent id 
+//     fn return_correct_indices(neighbors : &Vec<&Square>, id : usize) -> Vec<usize> {
+//         let mut output = Vec::new();
 
-        for neighbor in neighbors {
-            if (neighbor.0.id) != (id) { output.push(neighbor); }
-        }
-
-        output
-    } 
+//         for (index, neighbor) in neighbors.iter().enumerate() {
+//             if (neighbor.id) != (id) { output.push(index); }
+//         }
+//         output
+//     } 
