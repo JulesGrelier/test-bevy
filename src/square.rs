@@ -1,29 +1,45 @@
 use macroquad::{color, prelude::*};
 use crate::params::*;
 
-#[derive(Clone, Copy)]
+
+#[derive(Clone, Copy, Debug)]
 pub struct Square {
-    x : f32,
+
+    pub row : usize,
     y : f32,
+
+    pub column : usize,
+    x : f32,
 
     pub id : usize,
 
     pub has_bottom_wall : bool,
-    pub on_bottom_border : bool,
     pub has_right_wall : bool,
-    pub on_right_border : bool,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone, Copy)]
 pub enum Way {
+    Top,
+    Left,
     Right,
     Bottom,
     Nothing
 }
 
 impl Square {
-    pub fn new (x : f32, y : f32, id : usize, on_bottom_border : bool, on_right_border : bool) -> Self {
-        Square { x, y, id, has_bottom_wall : true, on_bottom_border, has_right_wall : true, on_right_border}
+
+    pub fn new(row_index : usize, column_index : usize, id : usize) -> Self {
+        Self {
+            row: row_index,
+            y: row_index as f32 * SIZE_SQUARE,
+
+            column: column_index,
+            x: column_index as f32 * SIZE_SQUARE,
+
+            id,
+            has_bottom_wall: true,
+            has_right_wall: true
+        }
     }
 
     pub fn draw(&self) {
@@ -33,7 +49,7 @@ impl Square {
         draw_rectangle(self.x, self.y, w, h, color::SKYBLUE);
     }
 
-    pub fn draw_debug(&self) {
+    pub fn debug(&self) {
         self.draw();
         draw_text(&self.id.to_string(), self.x + SIZE_SQUARE/3.0, self.y + SIZE_SQUARE/3.0, SIZE_SQUARE/3.0, RED);
     }
@@ -42,16 +58,14 @@ impl Square {
         match way {
             Way::Right => self.has_right_wall = false,
             Way::Bottom => self.has_bottom_wall = false,
-            Way::Nothing => return,
+            _ => return,
         }
     }
 
-    ///Return if there is acces without considering neighbor's id
-    pub fn return_bottom_and_right_acces(&self) -> (bool, bool) {
-        let bottom_acces = self.has_bottom_wall & !self.on_bottom_border;
-        let right_acces = self.has_right_wall & !self.on_right_border;
+    pub fn define_accesses(&self) -> (bool, bool) {
+        let bottom_acces = self.has_bottom_wall && self.row + 1 != NB_SQUARE_V;
+        let right_acces = self.has_right_wall && self.column + 1 != NB_SQUARE_H;
 
         (bottom_acces, right_acces)
     }
-
 }
