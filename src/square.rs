@@ -5,10 +5,10 @@ use crate::params::*;
 #[derive(Clone, Copy, Debug)]
 pub struct Square {
 
-    pub row_index : usize,
+    pub row : usize,
     y : f32,
 
-    pub column_index : usize,
+    pub column : usize,
     x : f32,
 
     pub id : usize,
@@ -30,10 +30,10 @@ impl Square {
 
     pub fn new(row_index : usize, column_index : usize, id : usize) -> Self {
         Self {
-            row_index,
+            row: row_index,
             y: row_index as f32 * SIZE_SQUARE,
 
-            column_index,
+            column: column_index,
             x: column_index as f32 * SIZE_SQUARE,
 
             id,
@@ -60,5 +60,12 @@ impl Square {
             Way::Bottom => self.has_bottom_wall = false,
             _ => return,
         }
+    }
+
+    pub fn define_accesses(&self) -> (bool, bool) {
+        let bottom_acces = self.has_bottom_wall && self.row + 1 != NB_SQUARE_V;
+        let right_acces = self.has_right_wall && self.column + 1 != NB_SQUARE_H;
+
+        (bottom_acces, right_acces)
     }
 }

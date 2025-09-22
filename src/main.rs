@@ -1,19 +1,15 @@
-//use std::time::Duration;
-
 use std::time::Duration;
-
 use macroquad::prelude::*;
+
 mod square;
-mod game;
 mod maze;
 mod params;
-use maze::Maze;
 
-use crate::{params::*, square::Way};
+use crate::{params::*, square::Way, maze::Maze};
 
 fn window_conf() -> Conf {
     Conf {
-        window_title: String::from("Labyrinth Simulation"),
+        window_title: String::from("Maze Simulation"),
         window_width : WINDOW_WIDTH as i32,
         window_height : WINDOW_HEIGHT as i32,
         window_resizable : false,
@@ -29,53 +25,45 @@ async fn main() {
     }
 
     let mut maze = Maze::new();
-
-    println!("c est le debut");
+    let mut running = true;
 
     loop {
 
         clear_background(BLACK);
-        println!("c est le A");
         maze.draw_maze();
-        println!("c est le Z");
         draw_fps();
 
-        for _ in 0..400 {
+        for _ in 0..800 {
 
-            let (mut row, mut column) = (0, 0);
-            let mut neighbor_id = 0;
-            let mut way = Way::Nothing;
+            let square = match maze.find_square_randomly() {
+                Some(square) => square,
+                None => {
+                    running = false;
+                    println!("Terminé");
+                    break;
+                },
+            };
 
-            //println!("AAAAAAA");
+            let (row, column) = (square.row, square.column);
 
-            {
-                //println!("BBBBBBB");
-                let square = match maze.find_square_randomly() {
-                    Some(square) => square,
-                    None => continue,
-                };
+            let way = maze.define_valide_way(square);
 
-                //println!("CCCCCC");
-                (way, neighbor_id) = maze.define_if_valide(square);
-
-
-                row = square.row_index;
-                column = square.column_index;
-
-                //println!("DDDDDDD");
-            }
-
-            if way == Way::Right || way == Way::Bottom {
-                maze.squares[row][column].break_wall(way);
-                maze.remplace_old_by_new_id(maze.squares[row][column].id, neighbor_id);
+            if way == Way::Nothing {
+                maze.remove_from_usable_indices(row, column);
                 continue;
             }
 
-            maze.remove_from_usable_indices(row, column);
+            let current_id = maze.squares[row][column].id;
+            let neighbor_id = maze.return_neighbor(square, way).id;
+
+            maze.squares[row][column].break_wall(way);
+            maze.remplace_old_by_new_id(current_id, neighbor_id);
         }
 
-        //std::thread::sleep(Duration::from_secs(1));
-        
+        if !running {
+            std::thread::sleep(Duration::from_secs(1));
+        }
+
         next_frame().await
     }
 }

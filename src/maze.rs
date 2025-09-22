@@ -14,40 +14,26 @@ impl Maze {
     
     pub fn new () -> Self {
 
-        println!("AAAAAAA");
         let mut squares = vec![vec![]];
-        println!("BBBBBBBB");
         let mut usable_indices = Vec::new();
-        println!("CCCCCCCC");
 
         for row in 0..NB_SQUARE_V {
             squares.push(Vec::new());
             for column in 0..NB_SQUARE_H {
-                println!("DDDDDDDD");
                 let id = NB_SQUARE_H * row + column;
-                println!("{} sur {}", id, NB_SQUARE);
-                println!("EEEEEEEEE");
-                //squares[row][column] = Square::new(row, column, id);
+
                 squares[row].push(Square::new(row, column, id));
-                println!("FFFFFFFFF");
                 usable_indices.push(id);
-                println!("GGGGGGGGG");
             }
         }
-
-        println!("finnnn");
 
         Self { squares, usable_indices }
     }
 
     pub fn draw_maze(&self) {
-        println!("1");
         for row_squares in &self.squares {
-            println!("2");
             for square in row_squares {
-                println!("Square a dessiner où row={} et column={} et id={}", square.row_index, square.column_index, square.id);
                 square.draw();
-                println!("finito");
             }
         }
     }
@@ -74,49 +60,52 @@ impl Maze {
         Some(&self.squares[row][column])
     }
 
-    pub fn define_if_valide<'a>(&self, square : &'a Square) -> (Way, usize) {
 
-        println!("Square : {:?}", square);
+    ///Doesn't check if out of range or valide way
+    pub fn return_neighbor(&self, current_square : &Square, way : Way) -> &Square {
 
-        let mut bottom_acces = !square.has_bottom_wall || square.row_index + 1 != NB_SQUARE_V;
-        let mut right_acces = !square.has_right_wall || square.column_index + 1 != NB_SQUARE_H;
+        let row = current_square.row;
+        let column = current_square.column;
 
-        println!("First right : {} and bottom : {}", right_acces, bottom_acces);
+        match way {
+            Way::Bottom => &self.squares[row+1][column],
+            Way::Right => &self.squares[row][column+1],
+            _ => panic!("Function return_neighbor shouldn't receive others ways")
+        }
+    }
+
+
+    pub fn define_valide_way(&self, square : &Square) -> Way {
+
+        let (mut bottom_acces, mut right_acces) = square.define_accesses();
 
         if !bottom_acces & !right_acces {
-            return (Way::Nothing, 0);
+            return Way::Nothing;
         }
 
-        let mut bottom_neighbor_id = 0;
-        let mut right_neighbor_id = 0;
-
         if bottom_acces {
-            let bottom_neighbor = &self.squares[square.row_index+1][square.column_index];
+            let bottom_neighbor = self.return_neighbor(square, Way::Bottom);
             bottom_acces = square.id != bottom_neighbor.id;
-            bottom_neighbor_id = bottom_neighbor.id;
         }
 
         if right_acces {
-            let right_neighbor = &self.squares[square.row_index][square.column_index+1];
+            let right_neighbor = self.return_neighbor(square, Way::Right);
             right_acces = square.id != right_neighbor.id;
-            right_neighbor_id = right_neighbor.id;
         }
-
-        println!("Second right : {} and bottom : {}", right_acces, bottom_acces);
 
         match (bottom_acces, right_acces) {
-            (true, true) => if rand::random_bool(0.5) { (Way::Bottom, bottom_neighbor_id) } else { (Way::Right, right_neighbor_id) },
-            (true, false) => (Way::Bottom, bottom_neighbor_id),
-            (false, true) => (Way::Right, right_neighbor_id),
-            (false, false) => (Way::Nothing, 0),
+            (true, true) => if rand::random_bool(0.5) { Way::Bottom } else { Way::Right },
+            (true, false) => Way::Bottom,
+            (false, true) => Way::Right,
+            (false, false) => Way::Nothing,
         }
-
     }
+
 
     pub fn remplace_old_by_new_id(&mut self, replacing_id : usize, replaced_id : usize) {
         for row_squares in &mut self.squares {
             for square in row_squares {
-                if (square.id == replaced_id) {
+                if square.id == replaced_id {
                     square.id = replacing_id;
                 }
             }
